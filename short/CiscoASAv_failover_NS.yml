@@ -1,0 +1,31 @@
+nsd:
+  nsd:
+  - id: CiscoASAv_failover_NS
+    description: Virtual firewall Network Service
+    name: CiscoASAv_failover_NS
+    version: '1.0'
+    #External VLs
+    virtual-link-desc:
+    - id: management
+      mgmt-network: true
+    #Set VNF's name
+    vnfd-id: CiscoASA_failover_VNF
+    df:
+    - id: default-df
+      vnf-profile:
+      #описываем external CP VNFок по очереди. Здесь у нас 1 VNF и 6 ext CPs
+      - id: '1'
+        virtual-link-connectivity:
+        #extCP_1_VDU_in_VNF
+        - constituent-cpd-id:
+          - constituent-base-element-id: '1'
+            constituent-cpd-id: ext_manage_active_FW
+            ip-address: 192.168.125.243
+          virtual-link-profile-id: management
+        #extCP_2_VDU_in_VNF
+        - constituent-cpd-id:
+          - constituent-base-element-id: '1'
+            constituent-cpd-id: ext_manage_standby_FW
+            ip-address: 192.168.125.244
+          virtual-link-profile-id: management
+        vnfd-id: CiscoASA_failover_VNF
