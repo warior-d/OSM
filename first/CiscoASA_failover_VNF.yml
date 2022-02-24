@@ -1,0 +1,178 @@
+vnfd:
+  id: CiscoASA_failover_VNF
+  description: VNF descriptor for Cisco ASAv
+  product-name: CiscoASA_failover_VNF
+  provider: MTS
+  version: '1.0'
+#Deployment flavour
+  df:
+    - id: default_df
+      instantiation-level:
+      - id: default_instantiation_level
+        vdu-level:
+        - number-of-instances: 1
+          vdu-id: active_FW
+        - number-of-instances: 1
+          vdu-id: standby_FW
+      vdu-profile:
+      - id: active_FW
+        min-number-of-instances: 1
+      - id: standby_FW
+        min-number-of-instances: 1
+#External CPs
+  ext-cpd:
+  #1
+    - id: ext_manage_active_FW
+      int-cpd:
+        cpd: int_manage_active_FW
+        vdu-id: active_FW
+  #2
+    - id: ext_manage_standby_FW
+      int-cpd:
+        cpd: int_manage_standby_FW
+        vdu-id: standby_FW
+  #3
+    - id: ext_public_active_FW
+      int-cpd:
+        cpd: int_public_active_FW
+        vdu-id: active_FW
+  #4
+    - id: ext_public_standby_FW
+      int-cpd:
+        cpd: int_public_standby_FW
+        vdu-id: standby_FW
+  #5
+    - id: ext_private_standby_FW
+      int-cpd:
+        cpd: int_private_standby_FW
+        vdu-id: standby_FW
+  #6
+    - id: ext_private_active_FW
+      int-cpd:
+        cpd: int_private_active_FW
+        vdu-id: active_FW
+#Image
+  sw-image-desc:
+    - id: cisco-9.17
+      image: cisco-9.17
+      name: cisco-9.17
+#External CP to manage Cisco ASAv (for Administrator's settting)
+  mgmt-cp: ext_manage_active_FW
+#Internal VL for failover
+  int-virtual-link-desc:
+  - id: lan-failover-link
+#VDU active and standby
+#################################################Active VDU
+  vdu:
+  - id: active_FW
+    supplemental-boot-data:
+      boot-data-drive: true
+    cloud-init: |
+          ! ASA Version 9.17(1)
+          hostname CiscoActiveFW
+          interface Management 0/0
+          nameif manageActive
+          security-level 50
+          ip address 192.168.125.243 255.255.255.0
+          no shutdown
+          !
+          crypto key generate rsa modulus 2048
+          username activefwuser password developerActive
+          ssh 192.168.125.0 255.255.255.0 manage
+          ssh version 2
+          ssh timeout 30
+          aaa authentication ssh console LOCAL          
+    #Internal CPs
+    int-cpd: 
+    - id: int_manage_active_FW
+      virtual-network-interface-requirement:
+      - name: manage_active_FW
+        position: 1
+        virtual-interface:
+          type: PARAVIRT
+    - id: int_public_active_FW
+      virtual-network-interface-requirement:
+      - name: public_active_FW
+        position: 2
+        virtual-interface:
+          type: PARAVIRT
+    - id: int_lan_failover_active_FW
+      int-virtual-link-desc: lan-failover-link  ### NB !!!
+      virtual-network-interface-requirement:
+      - name: lan_failover_active_FW
+        position: 3
+        virtual-interface:
+          type: PARAVIRT
+    - id: int_private_active_FW
+      virtual-network-interface-requirement:
+      - name: private_active_FW
+        position: 4
+        virtual-interface:
+          type: PARAVIRT
+    #VDU params
+    name: active_FW
+    sw-image-desc: cisco-9.17
+    virtual-compute-desc: cisco_vm_compute
+    virtual-storage-desc: cisco_vm_storage_10
+###############################################Standby VDU  
+  - id: standby_FW
+    supplemental-boot-data:
+      boot-data-drive: true
+    cloud-init: |
+          ! ASA Version 9.17(1)
+          hostname CiscoStandbyFW
+          interface Management 0/0
+          nameif manageStandby
+          security-level 50
+          ip address 192.168.125.244 255.255.255.0
+          no shutdown
+          !
+          crypto key generate rsa modulus 2048
+          username standbyfwuser password developerStandby
+          ssh 192.168.125.0 255.255.255.0 manage
+          ssh version 2
+          ssh timeout 30
+          aaa authentication ssh console LOCAL          
+    #Internal CPs
+    int-cpd:
+    - id: int_manage_standby_FW
+      virtual-network-interface-requirement:
+      - name: manage_standby_FW
+        position: 1
+        virtual-interface:
+          type: PARAVIRT
+    - id: int_public_standby_FW
+      virtual-network-interface-requirement:
+      - name: public_standby_FW
+        position: 2
+        virtual-interface:
+          type: PARAVIRT
+    - id: int_lan_failover_standby_FW
+      int-virtual-link-desc: lan-failover-link  ### NB !!!
+      virtual-network-interface-requirement:
+      - name: lan_failover_standby_FW
+        position: 3
+        virtual-interface:
+          type: PARAVIRT
+    - id: int_private_standby_FW
+      virtual-network-interface-requirement:
+      - name: private_standby_FW
+        position: 4
+        virtual-interface:
+          type: PARAVIRT
+    #VDU params
+    name: standby_FW
+    sw-image-desc: cisco-9.17
+    virtual-compute-desc: cisco_vm_compute
+    virtual-storage-desc: cisco_vm_storage_10
+  virtual-compute-desc:
+  - id: cisco_vm_compute
+    virtual-cpu:
+      num-virtual-cpu: 4
+    virtual-memory:
+      size: 4.0
+  virtual-storage-desc:
+  - id: cisco_vm_storage_10
+    size-of-storage: 10
+  - id: cisco_vm_storage_20
+    size-of-storage: 20  
